@@ -11,6 +11,8 @@ function check_paytype($buff){
         return $match[0];
     }elseif(preg_match("/PayPay/ui",$buff,$match)){
         return $match[0];
+    }elseif(preg_match("/メルペイ/ui",$buff,$match)){
+        return $match[0];
     }
 }
 
@@ -33,6 +35,8 @@ function check_ammount($paytype,$buff){
         //$pattern = "/^([0-9,-]+)円$/ui";
         //$pattern = "/^([0-9,-]+)円/ui";
         $pattern = "/total-amount[^>]*><span>([0-9,-]+)<\/span>/ui";
+    }elseif(preg_match("/メルペイ/ui",$paytype,$match)){
+        $pattern = "/>メルペイで￥([0-9 \,]+)の支払いを受付けました<\/p>/ui";
     }
 
     $lines = explode("\n",$buff);
