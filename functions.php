@@ -205,6 +205,7 @@ function check_is_right_encode($temp){
     if(preg_match("/楽天/ui",$temp,$dummy))return true;
     if(preg_match("/PayPay/ui",$temp,$dummy))return true;
     if(preg_match("/Line Pay/ui",$temp,$dummy))return true;
+    if(preg_match("/メルペイ/ui",$temp,$dummy))return true;
 
     return false;
 }
