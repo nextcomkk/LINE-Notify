@@ -14,6 +14,16 @@ function check_paytype($buff){
     }elseif(preg_match("/メルペイ/ui",$buff,$match)){
         return $match[0];
     }
+
+}
+
+//楽天の支払い系の値をapiへ送るためのフラグチェック関数
+function check_rakuten($buff){
+    if(preg_match("/電子マネー売上票/ui",$buff,$match)){
+        return $match[0];
+    }else{
+        return "";
+    }
 }
 
 function check_ammount($paytype,$buff){
@@ -38,6 +48,7 @@ function check_ammount($paytype,$buff){
     }elseif(preg_match("/メルペイ/ui",$paytype,$match)){
         $pattern = "/>メルペイで￥([0-9 \,]+)の支払いを受付けました<\/p>/ui";
     }
+
 
     $lines = explode("\n",$buff);
 
@@ -77,8 +88,8 @@ function send_message_to_line($message,$linetoken){
         'http'=>array(
             'method'=>'POST',
             'header'=>"Authorization: Bearer {$linetoken}\r\n"
-                      . "Content-Type: application/x-www-form-urlencoded\r\n"
-                      . "Content-Length: ".strlen($data)  . "\r\n" ,
+                . "Content-Type: application/x-www-form-urlencoded\r\n"
+                . "Content-Length: ".strlen($data)  . "\r\n" ,
             'content' => $data
         )
     );
@@ -90,7 +101,7 @@ function send_message_to_line($message,$linetoken){
 
 
 //
-// メール処理ユーティリティ関数 
+// メール処理ユーティリティ関数
 //
 
 function get_subject($buff){
@@ -140,11 +151,11 @@ function get_body($buff){
 }
 
 function my_convertMailStr($str){
-   mb_language('ja');
-   mb_internal_encoding('EUC-JP');
-   $ret_string = mb_convert_encoding(mb_decode_mimeheader($str),"UTF-8","EUC-JP");
-   mb_internal_encoding('UTF-8');
-   return $ret_string;
+    mb_language('ja');
+    mb_internal_encoding('EUC-JP');
+    $ret_string = mb_convert_encoding(mb_decode_mimeheader($str),"UTF-8","EUC-JP");
+    mb_internal_encoding('UTF-8');
+    return $ret_string;
 }
 
 function check_charset($buff){
@@ -216,22 +227,22 @@ function base64change($body,$boundary){
 
     $test_i = 0;
 
-/*
-    $body_buff = "";
-    $septext ="";
-    foreach($lines as $line){
-        if(strlen($septext)<=0){
-            //--000000000000a0b8be058193429b
-            if(preg_match("/^--[0-9A-Za-z=_\.\-]{5,}/ui",$line)){
-                if(!preg_match("/Original Message/ui",$line)){
-                    $septext = str_replace("\n","",$line);
+    /*
+        $body_buff = "";
+        $septext ="";
+        foreach($lines as $line){
+            if(strlen($septext)<=0){
+                //--000000000000a0b8be058193429b
+                if(preg_match("/^--[0-9A-Za-z=_\.\-]{5,}/ui",$line)){
+                    if(!preg_match("/Original Message/ui",$line)){
+                        $septext = str_replace("\n","",$line);
+                    }
                 }
             }
+            $body_buff .= $line."\n";
+            $test_i++;
         }
-        $body_buff .= $line."\n";
-        $test_i++;
-    }
-*/
+    */
     //echo "Separeter=[{$septext}]";
     if(strlen($boundary)<=0){
         return $body;
@@ -257,7 +268,7 @@ function base64change($body,$boundary){
             $line = str_replace("\r","",$line);
 
             if($line!="")$is_pre = false;
-            if($is_pre)continue; 
+            if($is_pre)continue;
             if(!$is_body){
                 if($line == ""){
                     $is_body = true;
@@ -308,3 +319,94 @@ function strip_brank_lines($body){
     return $body;
 }
 
+
+//APIへ値を渡す関数
+
+//変数の宣言
+$base_url = 'https://orderapi.azurewebsites.net';
+
+
+//ワンタイムトークンを取得する関数
+function gettoken() {
+
+    global $base_url;
+
+    try{
+        // セッションを初期化
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $base_url."/api/shopauth/abcde");
+        curl_setopt ($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+
+        // 転送を実行
+        $json = curl_exec($ch);
+
+        // エラー番号を取得
+        $curlErrno = curl_errno($ch);
+        if($curlErrno){
+            $curlError = curl_error($ch);
+            throw new Exception($curlError);
+        }
+
+        // セッションを終了
+        curl_close($ch);
+
+    } catch (Exception $e) {
+        echo "Exception-".$e->getMessage();
+    }
+
+    // json形式から、配列に変換
+    $result = json_decode($json, true);
+    $token = $result['token'];
+
+    return $token;
+}
+
+
+
+function basic($paytype,$ammount) {
+
+    global $base_url;
+    $token = gettoken();
+
+    //postするパラメータの設定
+    $data = [
+        'total_money' => $ammount,
+        'payment_type_id' => "OTHER",
+        'payment_type_name' => $paytype,
+    ];
+
+    // 取得したワンタイムtokenをAuthorizationにセット
+    $header = [
+        'Authorization: '.$token,
+        'Content-Type: application/json',
+    ];
+
+    $ch = curl_init();
+
+    curl_setopt($ch, CURLOPT_URL, $base_url.'/api/paymentupdate');
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data)); // jsonデータを送信
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $header); // リクエストにヘッダーを含める
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HEADER, true);
+
+    $response = curl_exec($ch);
+
+    $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    $header = substr($response, 0, $header_size);
+    $body = substr($response, $header_size);
+    $result = json_decode($body, true);
+
+    $httpcode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+    curl_close($ch);
+
+    //返り値の配列にhttpコードをマージ
+    $result2 = array_merge($result,array('httpcode'=> $httpcode));
+
+    return $result2;
+
+}
