@@ -91,6 +91,7 @@ if($paytype != "" && $rakutentype == ""){
     echo "api_result={$result}<br>\n";
     $num = 1;
 
+    
 }else{
     echo "<h4>not LineNotify</h4>\n";
 }
