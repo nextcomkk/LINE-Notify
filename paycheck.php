@@ -75,7 +75,8 @@ EOF;
 $rakutentype = check_rakuten($subject);
 $num = 0;
 
-if($paytype!="" && $rakutentype == ""){
+// 楽天系電子マネーは対象外
+if($paytype != "" && $rakutentype == ""){
     echo "<h4>LineNotfiy!:</h4>\n";
     $msg = "<{$paytype}>" . number_format($ammount) ."円";
     echo "msg={$msg}<br>\n";
@@ -94,16 +95,22 @@ if($paytype!="" && $rakutentype == ""){
     echo "<h4>not LineNotify</h4>\n";
 }
 
-if($rakutentype!="" && $num == 0){
+//if($rakutentype !="" && $num == 0){
+//
+//    $result = basic($paytype,$ammount);
+//    echo "api_result={$result}<br>\n";
+//
+//}else{
+//    echo "<h4>not send message to api</h4>\n";
+//}
 
+// 全ての決済手段で種別と金額をPOSのAPIへ投げる
+if($paytype != "") {
     $result = basic($paytype,$ammount);
     echo "api_result={$result}<br>\n";
-
-}else{
+} else {
     echo "<h4>not send message to api</h4>\n";
 }
-
-
 exit();
 
 ?>

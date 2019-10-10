@@ -30,23 +30,33 @@ function check_ammount($paytype,$buff){
 
     $ng_str = array();
 
+    // 楽天系電子マネーはテキストへ変更になったようだが両方動く
     if(preg_match("/楽天/ui",$paytype,$match)){
         //$pattern = "/^利用金額([0-9 \,]+)円$/ui";
         $pattern = "/([0-9 \,]+)円/ui";
         $ng_str[]  = "/残高/ui";
         $ng_str[]  = "/利用前/ui";
         $ng_str[]  = "/取引前/ui";
+    // LINE(HTML)
     }elseif(preg_match("/LINE/ui",$paytype,$match)){
         //$pattern = "/^お支払い金額([0-9 \,]+)$/ui";
         //$pattern = "/^お支払い金額([0-9 \,]+)/ui";
         //>お支払い金額</td><td style="margin: 0px; padding: 15px 26px; border-top: 1px solid rgb(231, 233, 236);">10</td>
         $pattern = "/>お支払い金額<\/td><td[^>]*>([0-9 \,]+)<\/td>/ui";
+    // paypay(HTML)
     }elseif(preg_match("/PayPay/ui",$paytype,$match)){
         //$pattern = "/^([0-9,-]+)円$/ui";
         //$pattern = "/^([0-9,-]+)円/ui";
         $pattern = "/total-amount[^>]*><span>([0-9,-]+)<\/span>/ui";
+    // メルペイ(HTML)
     }elseif(preg_match("/メルペイ/ui",$paytype,$match)){
         $pattern = "/>メルペイで￥([0-9 \,]+)の支払いを受付けました<\/p>/ui";
+    // D払い(HTML)  ＊仮
+    }elseif(preg_match("/D払い/ui",$paytype,$match)){
+        $pattern = "/>D払いで￥([0-9 \,]+)の支払いを受付けました<\/p>/ui";
+    // auPay(HTML) ＊仮
+    }elseif(preg_match("/auPay/ui",$paytype,$match)){
+        $pattern = "/>auPayで￥([0-9 \,]+)の支払いを受付けました<\/p>/ui";
     }
 
 
